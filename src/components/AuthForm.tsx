@@ -7,12 +7,12 @@ import {
 } from "@/components/ui/card";
 import { UseAuth } from "./AuthProvider";
 import { useEffect, useState } from "react";
-import { showErrorToast, showSuccessToast } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authenticate } from "@/lib/get-add-data";
 import { useMutation } from "@tanstack/react-query";
+import { showErrorToast, showSuccessToast } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export function AuthForm() {
@@ -34,7 +34,8 @@ export function AuthForm() {
     mutationFn: authenticate,
     onSuccess: () => {
       login();
-      navigate("/");
+      const previousPath = location?.state?.from?.pathname || "/";
+      navigate(previousPath, { replace: true });
       showSuccessToast("Logged In");
     },
     onError: (error: any) => {
@@ -86,6 +87,7 @@ export function AuthForm() {
               onClick={() =>
                 mutation.mutate({ email, password, authType: page })
               }
+              disabled={mutation.isPending}
             >
               {page === "signin" ? "Sign In" : "Sign Up"}
             </Button>

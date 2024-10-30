@@ -18,7 +18,7 @@ const Quote = () => {
   const queryClient = useQueryClient();
   const { isLoggedIn, logout } = UseAuth();
 
-  const { isLoading, data, isError } = useQuery({
+  const { isLoading, data, isError } = useQuery<QuotesType[]>({
     queryKey: ["quotes"],
     queryFn: fetchQuotes,
     refetchOnMount: false,
@@ -51,8 +51,6 @@ const Quote = () => {
     }
   };
 
-  const typedData = data as QuotesType[];
-
   return (
     <>
       <div className="grid w-full gap-2 my-8">
@@ -67,18 +65,19 @@ const Quote = () => {
           onClick={() => {
             mutation.mutate(newQuote);
           }}
+          disabled={mutation.isPending}
         >
           Add Quote
         </Button>
       </div>
-      {isLoading && <div className="text-center">Loading...</div>}
-      {isError && <div className="text-center">An error occured</div>}
-      {(!typedData || !typedData?.length) && (
-        <div className="text-center">No quotes to show</div>
-      )}
-      {!isLoading && typedData?.length > 0 && (
+      <div className="text-center">
+        {isLoading && <div>Loading...</div>}
+        {!isLoading && isError && <div>An error occurred</div>}
+        {!isLoading && !data?.length && <div>No quotes to show</div>}
+      </div>
+      {!isLoading && data && data?.length > 0 && (
         <ScrollArea className="grid grid-cols-1 mb-4 flex-grow">
-          {typedData?.map((quote) => (
+          {data?.map((quote) => (
             <div className="bg-slate-800 rounded-md p-2 mb-4" key={quote.id}>
               <p className="text-center">{quote.text}</p>
             </div>
