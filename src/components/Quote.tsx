@@ -1,3 +1,10 @@
+import {
+  axiosInstance,
+  showErrorToast,
+  showSuccessToast,
+  showLoadingToast,
+} from "@/lib/utils";
+import { toast } from "sonner";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { UseAuth } from "./AuthProvider";
@@ -5,7 +12,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchQuotes, postQuote } from "@/lib/get-add-data";
-import { axiosInstance, showErrorToast, showSuccessToast } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 type QuotesType = {
@@ -28,16 +34,28 @@ const Quote = () => {
 
   const mutation = useMutation({
     mutationFn: postQuote,
-    onSuccess: async () => {
-      setNewQuote("");
-      queryClient.invalidateQueries({
-        queryKey: ["quotes"],
-        refetchType: "all",
-      });
-      showSuccessToast("Quote Posted");
+    onMutate: () => {
+      showLoadingToast("Posting");
+      const previousQuotes = data;
+      queryClient.setQueryData(
+        ["quotes"],
+        [{ id: "temp", text: newQuote }, ...(data || [])]
+      );
+      return { previousQuotes };
     },
-    onError: (error: any) => {
+    onError: (error, _, context) => {
+      toast.dismiss();
       showErrorToast(error);
+      queryClient.setQueryData(["quotes"], context?.previousQuotes);
+    },
+    onSuccess: async (data, _, context) => {
+      setNewQuote("");
+      queryClient.setQueryData(
+        ["quotes"],
+        [data.data, ...(context?.previousQuotes || [])]
+      );
+      toast.dismiss();
+      showSuccessToast("Quote Posted");
     },
   });
 
@@ -78,7 +96,12 @@ const Quote = () => {
       {!isLoading && data && data?.length > 0 && (
         <ScrollArea className="grid grid-cols-1 mb-4 flex-grow">
           {data?.map((quote) => (
-            <div className="bg-slate-800 rounded-md p-2 mb-4" key={quote.id}>
+            <div
+              className={`${
+                quote.id === "temp" ? "bg-slate-900" : "bg-slate-800"
+              } rounded-md p-2 mb-4`}
+              key={quote.id}
+            >
               <p className="text-center">{quote.text}</p>
             </div>
           ))}

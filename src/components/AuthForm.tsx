@@ -1,10 +1,16 @@
 import {
+  showErrorToast,
+  showLoadingToast,
+  showSuccessToast,
+} from "@/lib/utils";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { toast } from "sonner";
 import { UseAuth } from "./AuthProvider";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -12,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authenticate } from "@/lib/get-add-data";
 import { useMutation } from "@tanstack/react-query";
-import { showErrorToast, showSuccessToast } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export function AuthForm() {
@@ -32,14 +37,19 @@ export function AuthForm() {
 
   const mutation = useMutation({
     mutationFn: authenticate,
+    onMutate: () => {
+      showLoadingToast("Authenticating");
+    },
+    onError: (error: any) => {
+      toast.dismiss();
+      showErrorToast(error);
+    },
     onSuccess: () => {
       login();
+      toast.dismiss();
       const previousPath = location?.state?.from?.pathname || "/";
       navigate(previousPath, { replace: true });
       showSuccessToast("Logged In");
-    },
-    onError: (error: any) => {
-      showErrorToast(error);
     },
   });
 

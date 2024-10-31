@@ -23,3 +23,7 @@ export const showErrorToast = (error: any) => {
       : error.response.data.message || error.response.data || error.message
   );
 };
+
+export const showLoadingToast = (message: string) => {
+  toast.loading(message);
+};
