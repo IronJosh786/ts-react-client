@@ -10,7 +10,13 @@ const NotFound = () => {
       <p className="mb-8 text-lg">
         Looks like you've ventured into the unknown digital realm.
       </p>
-      <Button onClick={() => navigate(-1)}>Return</Button>
+      <Button
+        onClick={() =>
+          window.history.length > 2 ? navigate(-1) : navigate("/")
+        }
+      >
+        Return
+      </Button>
     </div>
   );
 };

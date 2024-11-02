@@ -1,3 +1,4 @@
+import Loader from "./Loader";
 import { useEffect } from "react";
 import { UseAuth } from "./AuthProvider";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -12,7 +13,7 @@ const PrivateRoute = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center mt-8">Loading...</div>;
+    return <Loader />;
   }
 
   return isLoggedIn ? (

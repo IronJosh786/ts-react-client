@@ -1,8 +1,17 @@
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./ui/form";
+import {
   showErrorToast,
   showLoadingToast,
   showSuccessToast,
 } from "@/lib/utils";
+import { z } from "zod";
 import {
   Card,
   CardContent,
@@ -12,22 +21,40 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { UseAuth } from "./AuthProvider";
+import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authenticate } from "@/lib/get-add-data";
 import { useMutation } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
+const authSchema = z.object({
+  email: z.string().email({ message: "Enter a valid email" }),
+  password: z.string().trim().min(8, {
+    message: "Password must be of at least 8 characters.",
+  }),
+});
+
 export function AuthForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [page, setPage] = useState<string>("");
 
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, loading, login } = UseAuth();
+
+  const form = useForm<z.infer<typeof authSchema>>({
+    resolver: zodResolver(authSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const handleAuthentication = (values: z.infer<typeof authSchema>) => {
+    mutation.mutate({ ...values, authType: page });
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -67,41 +94,46 @@ export function AuthForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              onClick={() =>
-                mutation.mutate({ email, password, authType: page })
-              }
-              disabled={mutation.isPending}
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleAuthentication)}
+              className="space-y-4"
             >
-              {page === "signin" ? "Sign In" : "Sign Up"}
-            </Button>
-          </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="abc@abc.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Abc@123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={mutation.isPending}
+              >
+                {page === "signin" ? "Sign In" : "Sign Up"}
+              </Button>
+            </form>
+          </Form>
           {page === "signin" ? (
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}

@@ -1,16 +1,26 @@
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./ui/form";
+import {
   axiosInstance,
   showErrorToast,
   showSuccessToast,
   showLoadingToast,
 } from "@/lib/utils";
+import { z } from "zod";
+import Loader from "./Loader";
 import { toast } from "sonner";
-import { useState } from "react";
+import { Input } from "./ui/input";
 import { Link } from "react-router-dom";
 import { UseAuth } from "./AuthProvider";
-import { ScrollArea } from "./ui/scroll-area";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { fetchQuotes, postQuote } from "@/lib/get-add-data";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -19,10 +29,32 @@ type QuotesType = {
   text: string;
 };
 
+const quoteSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(10, {
+      message: "Quote must be of at least 10 characters.",
+    })
+    .max(50, {
+      message: "Quote can be of at most 50 characters.",
+    }),
+});
+
 const Quote = () => {
-  const [newQuote, setNewQuote] = useState("");
   const queryClient = useQueryClient();
   const { isLoggedIn, logout } = UseAuth();
+
+  const form = useForm<z.infer<typeof quoteSchema>>({
+    resolver: zodResolver(quoteSchema),
+    defaultValues: {
+      text: "",
+    },
+  });
+
+  const handleNewQuote = (value: z.infer<typeof quoteSchema>) => {
+    mutation.mutate(value.text);
+  };
 
   const { isLoading, data, isError } = useQuery<QuotesType[]>({
     queryKey: ["quotes"],
@@ -34,12 +66,12 @@ const Quote = () => {
 
   const mutation = useMutation({
     mutationFn: postQuote,
-    onMutate: () => {
+    onMutate: (variables) => {
       showLoadingToast("Posting");
       const previousQuotes = data;
       queryClient.setQueryData(
         ["quotes"],
-        [{ id: "temp", text: newQuote }, ...(data || [])]
+        [{ id: "temp", text: variables }, ...(data || [])]
       );
       return { previousQuotes };
     },
@@ -49,12 +81,12 @@ const Quote = () => {
       queryClient.setQueryData(["quotes"], context?.previousQuotes);
     },
     onSuccess: async (data, _, context) => {
-      setNewQuote("");
+      form.reset();
+      toast.dismiss();
       queryClient.setQueryData(
         ["quotes"],
         [data.data, ...(context?.previousQuotes || [])]
       );
-      toast.dismiss();
       showSuccessToast("Quote Posted");
     },
   });
@@ -71,30 +103,46 @@ const Quote = () => {
 
   return (
     <>
-      <div className="grid w-full gap-2 my-8">
-        <Textarea
-          placeholder="Write a new quote."
-          className="resize-none text-base"
-          value={newQuote}
-          onChange={(e) => setNewQuote(e.target.value)}
-        />
-        <Button
-          className="mt-2"
-          onClick={() => {
-            mutation.mutate(newQuote);
-          }}
-          disabled={mutation.isPending}
-        >
-          Add Quote
-        </Button>
+      <div className="grid w-full gap-2 bg-background my-4 sticky top-0 py-4">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleNewQuote)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="text"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-center">New Quote</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="py-6"
+                      placeholder="Write a new quote..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={mutation.isPending}
+            >
+              Post Quote
+            </Button>
+          </form>
+        </Form>
       </div>
       <div className="text-center">
-        {isLoading && <div>Loading...</div>}
+        {isLoading && <Loader />}
         {!isLoading && isError && <div>An error occurred</div>}
         {!isLoading && !data?.length && <div>No quotes to show</div>}
       </div>
       {!isLoading && data && data?.length > 0 && (
-        <ScrollArea className="grid grid-cols-1 mb-4 flex-grow">
+        <div className="flex flex-col flex-grow">
           {data?.map((quote) => (
             <div
               className={`${
@@ -105,7 +153,7 @@ const Quote = () => {
               <p className="text-center">{quote.text}</p>
             </div>
           ))}
-        </ScrollArea>
+        </div>
       )}
       <div
         className={`mt-auto flex ${
