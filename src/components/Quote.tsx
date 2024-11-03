@@ -27,6 +27,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 type QuotesType = {
   id: string;
   text: string;
+  userId: string;
+  createdAt: string;
 };
 
 const quoteSchema = z.object({
